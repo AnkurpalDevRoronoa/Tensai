@@ -733,132 +733,234 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
 
 
-    @Override
-    public Message<?> preSend(
-            Message<?> message,
-            MessageChannel channel
-    ) {
+//     @Override
+//     public Message<?> preSend(
+//             Message<?> message,
+//             MessageChannel channel
+//     ) {
 
 
-        StompHeaderAccessor accessor =
-                MessageHeaderAccessor.getAccessor(
-                        message,
-                        StompHeaderAccessor.class
-                );
+//         StompHeaderAccessor accessor =
+//                 MessageHeaderAccessor.getAccessor(
+//                         message,
+//                         StompHeaderAccessor.class
+//                 );
 
 
-        if (accessor == null) {
-            return message;
-        }
-
-
-
-        /*
-         * First connection
-         */
-        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-
-
-            String authHeader =
-                    accessor.getFirstNativeHeader("Authorization");
+//         if (accessor == null) {
+//             return message;
+//         }
 
 
 
-            if (authHeader != null &&
-                    authHeader.startsWith("Bearer ")) {
+//         /*
+//          * First connection
+//          */
+//         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+
+
+//             String authHeader =
+//                     accessor.getFirstNativeHeader("Authorization");
 
 
 
-                String token =
-                        authHeader.substring(7);
+//             if (authHeader != null &&
+//                     authHeader.startsWith("Bearer ")) {
 
 
 
-                String userId =
-                        jwtService.extractUserId(token);
+//                 String token =
+//                         authHeader.substring(7);
 
 
 
-                Principal principal =
-                        () -> userId;
+//                 String userId =
+//                         jwtService.extractUserId(token);
 
 
 
-                accessor.setUser(principal);
+//                 Principal principal =
+//                         () -> userId;
 
 
 
-                accessor.getSessionAttributes()
-                        .put("user", principal);
+//                 accessor.setUser(principal);
 
 
 
-                System.out.println(
-                        "CONNECT USER = " + userId
-                );
-
-
-            } else {
-
-                System.out.println(
-                        "NO JWT FOUND IN WEBSOCKET CONNECT"
-                );
-
-            }
+//                 accessor.getSessionAttributes()
+//                         .put("user", principal);
 
 
 
-        }
-
-        /*
-         * Every message after CONNECT
-         */
-        else {
+//                 System.out.println(
+//                         "CONNECT USER = " + userId
+//                 );
 
 
+//             } else {
 
-            Principal principal =
-                    (Principal) accessor
-                            .getSessionAttributes()
-                            .get("user");
+//                 System.out.println(
+//                         "NO JWT FOUND IN WEBSOCKET CONNECT"
+//                 );
 
-
-
-            if (principal != null) {
-
-
-                accessor.setUser(principal);
+//             }
 
 
 
-                System.out.println(
-                        "RESTORED USER = "
-                                + principal.getName()
-                );
+//         }
 
-
-            } else {
-
-
-                System.out.println(
-                        "NO USER IN WEBSOCKET SESSION"
-                );
-
-            }
-
-        }
+//         /*
+//          * Every message after CONNECT
+//          */
+//         else {
 
 
 
-        accessor.setLeaveMutable(true);
+//             Principal principal =
+//                     (Principal) accessor
+//                             .getSessionAttributes()
+//                             .get("user");
 
 
 
-        return MessageBuilder
-                .withPayload(message.getPayload())
-                .copyHeaders(accessor.getMessageHeaders())
-                .build();
+//             if (principal != null) {
 
+
+//                 accessor.setUser(principal);
+
+
+
+//                 System.out.println(
+//                         "RESTORED USER = "
+//                                 + principal.getName()
+//                 );
+
+
+//             } else {
+
+
+//                 System.out.println(
+//                         "NO USER IN WEBSOCKET SESSION"
+//                 );
+
+//             }
+
+//         }
+
+
+
+//         accessor.setLeaveMutable(true);
+
+
+
+//         return MessageBuilder
+//                 .withPayload(message.getPayload())
+//                 .copyHeaders(accessor.getMessageHeaders())
+//                 .build();
+
+//     }
+
+@Override
+public Message<?> preSend(
+        Message<?> message,
+        MessageChannel channel
+) {
+
+    StompHeaderAccessor accessor =
+            MessageHeaderAccessor.getAccessor(
+                    message,
+                    StompHeaderAccessor.class
+            );
+
+    if (accessor == null) {
+        return message;
     }
 
+    StompCommand command = accessor.getCommand();
+
+    if (command == null) {
+        return message;
+    }
+
+    /*
+     * First connection
+     */
+    if (StompCommand.CONNECT.equals(command)) {
+
+        String authHeader =
+                accessor.getFirstNativeHeader("Authorization");
+
+        if (authHeader != null &&
+                authHeader.startsWith("Bearer ")) {
+
+            String token = authHeader.substring(7);
+
+            String userId = jwtService.extractUserId(token);
+
+            Principal principal = () -> userId;
+
+            accessor.setUser(principal);
+
+            accessor.getSessionAttributes()
+                    .put("user", principal);
+
+            System.out.println(
+                    "CONNECT USER = " + userId
+            );
+
+        } else {
+
+            System.out.println(
+                    "NO JWT FOUND IN WEBSOCKET CONNECT"
+            );
+        }
+
+        return message;
+    }
+
+    /*
+     * DISCONNECT
+     *
+     * Don't try to modify/rebuild an immutable
+     * disconnect message.
+     */
+    if (StompCommand.DISCONNECT.equals(command)) {
+
+        System.out.println(
+                "DISCONNECT USER = " +
+                (accessor.getUser() != null
+                        ? accessor.getUser().getName()
+                        : "unknown")
+        );
+
+        return message;
+    }
+
+    /*
+     * Every message after CONNECT
+     */
+    Principal principal =
+            (Principal) accessor
+                    .getSessionAttributes()
+                    .get("user");
+
+    if (principal != null) {
+
+        accessor.setUser(principal);
+
+        System.out.println(
+                "RESTORED USER = " +
+                        principal.getName()
+        );
+
+    } else {
+
+        System.out.println(
+                "NO USER IN WEBSOCKET SESSION"
+        );
+    }
+
+    return message;
+}
 }
