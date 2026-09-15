@@ -4,37 +4,17 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb://localhost:27017/mingoapp
+      uri: ${MONGODB_URI}
 
 server:
   address: 0.0.0.0
   port: 8081
 
 jwt:
-  secret: 8edc2d9a1e7b6f3c5f7h9a2b7c1d4f6e9a8b3c7d2f5e1a6b9c4d8e7f2a1b5ci
+  secret: ${JWT_SECRET}
   expiration: 86400000
 
 cloudinary:
-  cloud-name: dim2gllvt
-  api-key: 298441271196449
-  api-secret: SS5HV1r8KQkyMRk_ub01sxPVpEg
-
-# spring:
-#   application:
-#     name: mingo-chatapp
-
-#   data:
-#     mongodb:
-#       uri: ${MONGODB_URI}
-
-# server:
-#   port: 8081
-
-# jwt:
-#   secret: ${JWT_SECRET}
-#   expiration: 86400000
-
-# cloudinary:
-#   cloud-name: ${CLOUDINARY_CLOUD_NAME}
-#   api-key: ${CLOUDINARY_API_KEY}
-#   api-secret: ${CLOUDINARY_API_SECRET}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
